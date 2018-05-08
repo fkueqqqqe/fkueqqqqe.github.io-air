@@ -1,0 +1,160 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta http-equiv="X-UA-Compatible" content="ie=edge">
+  <title>Document</title>
+  <style type='text/css'>
+    body{background:black;}
+    #container{width:320px;margin:100px auto 0;position:relative;}
+    #c1{background:pink;}
+    #btnStart{width:100px;height:20px;border-radius:4px;border:1px solid black;text-align:center;line-height:20px;position:absolute;left:110px;bottom:100px;padding:6px;}
+  </style>
+  <script>
+     //eImgs={style0:{sm:'',md:'',lg:''},style1：{...}，style2:{..}} ;
+     var eImgs={style0:{sm:'./images/enemy1_fly_1.png',md:'./images/enemy3_fly_1.png',lg:'./images/enemy2_fly_1.png'}};
+     var mImgs={style0:{default:'./images/我的飞机.gif'}};
+     var bgImgs={style0:{default:'./images/background_1.png'}};
+     var blImgs={style0:{default:'./images/bullet1.png'}};
+     var c1;
+     var ctx;
+     var timer=null;
+     var timer0=null;//smallplane
+     var timer0_bl=null;
+     var timer1=null;//middleplane;
+     var timer1_bl=null;
+     var timer2=null;//largeplane;
+     var timer2_bl=null;
+     var smPlane=[];
+     var mdPlane=[];
+     var lgPlane=[];
+     class Sprite{
+        constructor(x,y,w,h,speed,style,size,type){
+            this.x=x;
+            this.y=y;
+            this.w=w;
+            this.h=h;
+            this.speed=speed;
+            this.style=style;
+            this.size=size;
+            this.type=type;
+            this.bullets=[];
+            var image=new Image();
+                if(typeof type=='string'){
+                  image.src=type;
+                }else{
+                  image.src=type[style][size];
+                }
+            this.img=image;
+         }
+          draw(){
+               ctx.drawImage(this.img,this.x,this.y,this.w,this.h);
+            }
+          fire(n){
+                for(var i=0;i<n;i++){
+                  //bullets 6*14
+                  var gap=8;
+                  var x=this.x+this.w/2+i*gap-n*gap/2;//center
+                  var y=this.y+this.h/2;
+                  this.bullets.push(new Sprite(x,y,6,14,10,'style0','default',blImgs));
+                }
+        }
+     }
+     var bg=new Sprite(0,0,320,568,0,null,null,'./images/开始背景.png');
+     var bg1=new Sprite(0,-568,320,1136,5,'style0','default',bgImgs);
+     //w*h=66*80;
+     var me=new Sprite(127,488,66,80,8,'style0','default',mImgs);
+     var drawWall=function(){
+        ctx.clearRect(0,0,c1.width,c1.height);
+            handle_bg();
+            handle_me();
+            controller(handle_smPlane,1000,timer0);//small plane generating controll;每800毫秒产生一辆small plane;
+            //redraw smallplane
+            smPlane.forEach(item=>{
+                item.draw();
+                item.y+=item.speed;
+                if(item.y>c1.height){
+                  smPlane=smPlane.filter(res=>res!=item);
+                }
+            });
+            //redraw
+        function handle_smPlane(){//34*24
+             var x=Math.random()*(c1.width-34);
+             var y=-(Math.random()*80+24);
+             smPlane.push(new Sprite(x,y,34,24,10,'style0','sm',eImgs));
+          }
+          function handle_bg(){
+            bg1.draw();
+            bg1.y+=bg1.speed;
+            if(bg1.y>0){
+              bg1.y=-c1.height;
+            }
+          }
+          function handle_me(){
+            //me.bullets[0].draw();
+            me.bullets.forEach(item=>{
+                item.y-=item.speed;
+                item.draw();
+                if(item.y<0){
+                  me.bullets=me.bullets.filter(res=>res!=item);
+                }
+            });
+            document.title=me.bullets.length;
+            //draw me;
+            me.draw();
+            //control me
+            document.onkeydown=function(evt){
+               switch(evt.keyCode){
+                  case 37://left;
+                    me.x-=me.speed;
+                  break;
+                  case 39://right;
+                    me.x+=me.speed;
+                  break;
+                  case 38://up;
+                  me.y-=me.speed;
+                  break;
+                  case 40://down;
+                  me.y+=me.speed;
+                  break;
+                  case 32:
+                  me.fire(10);
+                  break;
+               }
+            }
+          }
+          function freq_smBullet(){
+           smPlane.forEach(item=>{
+            item.fire(1);
+           });
+          }
+        //control freq
+        function controller(fn,time,tmr){
+           if(!tmr){
+              tmr=setInterval(fn,time);
+              console.log(tmr);
+           }
+        }
+     };
+    function init(){
+       c1=document.getElementById('c1');
+       btnStart=document.getElementById('btnStart');
+       ctx=c1.getContext('2d');
+       bg.draw();
+       btnStart.onclick=function(){
+         if(timer) clearInterval(timer);
+         timer=setInterval(drawWall,100);
+         this.style.display='none';
+       };
+    }
+  </script>
+</head>
+<body onload='init()'>
+  <div id='container'>
+       <canvas id='c1' width='320' height='568'></canvas>
+       <div id='btnStart'>开始游戏</div>
+  </div>
+  <img src='./images/我的飞机.gif'/>
+</body>
+</html>

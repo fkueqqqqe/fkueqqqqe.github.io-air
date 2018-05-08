@@ -1,0 +1,399 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta http-equiv="X-UA-Compatible" content="ie=edge">
+  <title>Document</title>
+  <style type='text/css'>
+    body{background:black;}
+    #container{width:320px;margin:100px auto 0;position:relative;}
+    #c1{background:pink;}
+    #btnStart{width:100px;height:20px;border-radius:4px;border:1px solid black;text-align:center;line-height:20px;position:absolute;left:110px;bottom:100px;padding:6px;}
+    #fail_view{padding-top:60px;width:320px;height:568px;position: absolute;left:0;top:0;background:rgba(255,0,0,0.2);display:none;}
+    #fail_view h1{color:red;font-size:60px;text-align: center;line-height:60px;}
+    #fail_view p{border:1px solid green;paddin:4px;font-size:32px;color:green;text-align: center;line-height:32px;width:100px;width:200px;margin:0 auto;border-radius:10px;background:black;color:white;}
+    #fail_view p:hover{zoom:1.2;}
+
+  </style>
+  <script>
+     //eImgs={style0:{sm:'',md:'',lg:''},style1：{...}，style2:{..}} ;
+     var eImgs={style0:{sm:'./images/enemy1_fly_1.png',md:'./images/enemy3_fly_1.png',lg:'./images/enemy2_fly_1.png',
+                        b_lg:'./images/大飞机爆炸.gif',c_lg:'./images/大飞机挨打.png',
+                        b_md:'./images/中飞机爆炸.gif',c_md:'./images/中飞机挨打.png',
+                        b_sm:'./images/小飞机爆炸.gif',b:'./images/boom.png'}};
+     var mImgs={style0:{default:'./images/我的飞机.gif',b_me:'./images/本方飞机爆炸.gif'}};
+     var bgImgs={style0:{default:'./images/background_1.png'}};
+     var blImgs={style0:{default:'./images/bullet1.png'}};
+     var c1;
+     var ctx;
+     var timer=null;
+     var timer0=null;//smallplane
+     var timer0_bl=null;
+     var timer1=null;//middleplane;
+     var timer1_bl=null;
+     var timer2=null;//largeplane;
+     var timer2_bl=null;
+     var smPlane=[];
+     var mdPlane=[];
+     var lgPlane=[];
+     class Sprite{
+        constructor(x,y,w,h,speed,blood,style,size,type){
+            this.x=x;
+            this.y=y;
+            this.w=w;
+            this.h=h;
+            this.speed=speed;
+            this.style=style;
+            this.size=size;
+            this.type=type;
+            this.bullets=[];
+            this.flag=true;
+            this.blood=blood;
+            var image=new Image();
+                if(typeof type=='string'){
+                  image.src=type;
+                }else{
+                  image.src=type[style][size];
+                }
+            this.img=image;
+         }
+          draw(){
+               ctx.drawImage(this.img,this.x,this.y,this.w,this.h);
+            }
+          fire(n){
+                for(var i=0;i<n;i++){
+                  //bullets 6*14
+                  var gap=8;
+                  var x=this.x+this.w/2+i*gap-n*gap/2;//center
+                  var y=this.y+this.h/2;
+                  this.bullets.push(new Sprite(x,y,6,14,10,1,'style0','default',blImgs));
+                }
+        }
+     }
+     var bg=new Sprite(0,0,320,568,0,null,null,null,'./images/开始背景.png');
+     var bg1=new Sprite(0,-568,320,1136,5,null,'style0','default',bgImgs);
+     //w*h=66*80;
+     var me=new Sprite(127,488,66,80,10,10,'style0','default',mImgs);
+     var drawWall=function(){
+        ctx.clearRect(0,0,c1.width,c1.height);
+            handle_bg();
+            handle_me();
+            //***************************************************
+            //开启timer0控制small plane 生成频率，800毫秒一台
+            if(!timer0){
+               timer0=setInterval(handle_smPlane,600);
+            }
+            //small plane bullets;
+            if(!timer0_bl){
+              timer0_bl=setInterval(handle_smBullet,2000);
+            }
+            //redraw small bullets;
+            smPlane.forEach(item=>{
+                 item.bullets.forEach(bl=>{
+                    bl.draw();
+                    bl.y+=item.speed+bl.speed-4;
+                    if(bl.y>c1.height){
+                      item.bullets=item.bullets.filter(res=>res!=item);
+                    }
+                 });
+            });
+            //redraw smallplane
+            smPlane.forEach(item=>{
+              if(item.blood>0){
+                item.draw();
+              }else if(!item.blood && item.flag){
+                  var image=new Image();
+                  image.src=eImgs['style0']['b'];
+                  item.img=image;
+                  item.draw();
+                  setTimeout(function(){item.flag=false;},100);
+              }
+
+              item.y+=item.speed;
+              if(item.y>c1.height){
+                smPlane=smPlane.filter(res=>res!=item);
+              }
+            });
+            //***************************************************
+            if(!timer1_bl){
+              timer1_bl=setInterval(handle_mdBullet,800);
+            }
+            //开启timer1控制middle plane的生成频率
+            if(!timer1){
+              timer1=setInterval(handle_mdPlane,2000);
+            }
+            //redraw mdplane bullet;
+            mdPlane.forEach(item=>{
+              item.bullets.forEach(bl=>{
+                 bl.draw();
+                 bl.y+=bl.speed+item.speed;
+                 if(bl.y>c1.height){
+                    item.bullets=item.bullets.filter(res=>res!=item);
+                 }
+              });
+            });
+            //redraw mdPlane;
+            mdPlane.forEach(item=>{
+              if(item.blood>0){
+                item.draw();
+              }else if(!item.blood && item.flag){
+                  var image=new Image();
+                      image.src=eImgs['style0']['b'];
+                      item.img=image;
+                      item.draw();
+                      setTimeout(function(){item.flag=false;},200);
+              }
+              item.y+=item.speed;
+              if(item.y>c1.height){
+                mdPlane=mdPlane.filter(res=>res!=item);
+              }
+            });
+            //****************************************************
+            //开启定时器timer2,控制large plane 生成频率 110*164;
+            if(!timer2){
+              timer2=setInterval(handle_lgPlane,16000);
+            }
+            //lorge plane bullets;
+            if(!timer2_bl){
+              timer2_bl=setInterval(handle_lgBullet,400);
+            }
+            //redraw the lg bullet;
+            lgPlane.forEach(item=>{
+               item.bullets.forEach(bl=>{
+                  bl.draw();
+                  bl.y+=item.speed+bl.speed;
+                  if(bl.y>c1.height){
+                    item.bullets=item.bullets.filter(res=>res!=bl);
+                  }
+               });
+            })
+            //redraw the lgplane;
+            lgPlane.forEach(item=>{
+              if(item.blood>0){
+                item.draw();
+              }else if(!item.blood && item.flag){
+                var image=new Image();
+                    image.src=eImgs['style0']['b_lg'];
+                    item.img=image;
+                    item.draw();
+                    setTimeout(function(){item.flag=false;},200);
+              }
+              item.y+=item.speed;
+              if(item.y>c1.height){
+                lgPlane=lgPlane.filter(res=>res!=item);
+              }
+            });
+            //*****************************************************
+            //collide test
+            //1.me bullet enemy-bullet;
+            let ePlanes=smPlane.concat(mdPlane).concat(lgPlane);
+
+               me.bullets.forEach(myBl=>{
+                   ePlanes.forEach(plane=>{
+                          plane.bullets.forEach(enBl=>{
+                              if(myBl.x>(enBl.x-myBl.w) && myBl.x<(enBl.x+enBl.w) && myBl.y>(enBl.y-myBl.h) && (myBl.y<enBl.y+enBl.h)){
+                                  plane.bullets=plane.bullets.filter(res=>res!=enBl);
+                                  me.bullets=me.bullets.filter(res=>res!=enBl);
+
+                              }
+                        });
+                   });
+               });
+           //2.me bullet >>small plane;
+           me.bullets.forEach(myBl=>{
+               smPlane.forEach(enBl=>{
+                          if(myBl.x>(enBl.x-myBl.w) && myBl.x<(enBl.x+enBl.w) && myBl.y>(enBl.y-myBl.h) && (myBl.y<enBl.y+enBl.h) && enBl.blood){
+                              me.bullets=me.bullets.filter(res=>res!=myBl);
+                              enBl.blood--;
+
+                          }
+               });
+           });
+           //3.me bullet >>middle plane;
+           me.bullets.forEach(myBl=>{
+               mdPlane.forEach(enBl=>{
+                          if(myBl.x>(enBl.x-myBl.w) && myBl.x<(enBl.x+enBl.w) && myBl.y>(enBl.y-myBl.h) && (myBl.y<enBl.y+enBl.h) && enBl.blood){
+                              me.bullets=me.bullets.filter(res=>res!=myBl);
+                              var img=enBl.img;
+                              var image=new Image();
+                                  image.src=eImgs['style0']['c_md'];
+                              enBl.img=image;
+                              setTimeout(function(){
+                                 enBl.img=img;
+                              },100);
+                              enBl.blood--;
+                          }
+               });
+           });
+           //4.me bullet >> large plane;
+           me.bullets.forEach(myBl=>{
+               lgPlane.forEach(enBl=>{
+                          if(myBl.x>(enBl.x-myBl.w) && myBl.x<(enBl.x+enBl.w) && myBl.y>(enBl.y-myBl.h) && (myBl.y<enBl.y+enBl.h) && enBl.blood){
+                              me.bullets=me.bullets.filter(res=>res!=myBl);
+                              var img=enBl.img;
+                              var image=new Image();
+                                  image.src=eImgs['style0']['c_lg'];
+                                  enBl.img=image;
+                                  setTimeout(function(){
+                                     enBl.img=img;
+                                  },100);
+                              enBl.blood--;
+                          }
+               });
+           });
+           //5.enemy-bullet >> me
+           ePlanes.forEach(pl=>{
+             pl.bullets.forEach(enBl=>{
+               if(me.x>(enBl.x-me.w) && me.x<(enBl.x+enBl.w) && me.y>(enBl.y-me.h) && (me.y<enBl.y+enBl.h) && me.blood){
+                    pl.bullets=pl.bullets.filter(res=>res!=enBl);
+                    enBl.blood--;
+                    me.blood--;
+               }
+             });
+
+           });
+           //6.enemy plane >> me ;
+           ePlanes.forEach(pl=>{
+                var json={'sm':10,'md':30,'lg':60};
+                var x0=me.x+me.w/2;
+                var y0=me.y+me.h/2;
+                var r0=22;
+                var x1=pl.x+pl.w/2;
+                var y1=pl.y+pl.h/2;
+                var r1=json[pl.size];
+                var a=Math.pow((x0-x1),2)+Math.pow((y0-y1),2);
+                var dis=Math.sqrt(a);
+                if(dis<(r0+r1) && me.blood && pl.blood){
+                    me.blood=0;
+                }
+           });
+
+          function handle_lgPlane(){
+            var x=Math.random()*(c1.width-110);
+            var y=-(Math.random()*80+164);
+            lgPlane.push(new Sprite(x,y,110,164,2,6,'style0','lg',eImgs));
+          }
+          function handle_lgBullet(){
+            lgPlane.forEach(item=>{
+               if(item.blood>0){
+                 item.fire(1);
+               }
+            });
+          }
+          function handle_mdPlane(){ //46*60
+              var x=Math.random()*(c1.width-46);
+              var y=-(Math.random()*80+60);
+              mdPlane.push(new Sprite(x,y,46,60,4,2,'style0','md',eImgs));
+          }
+          function handle_mdBullet(){
+              mdPlane.forEach(item=>{
+                if(item.blood>0){
+                  item.fire(1);
+                }
+              });
+          }
+          function handle_smPlane(){//34*24
+             var x=Math.random()*(c1.width-34);
+             var y=-(Math.random()*80+24);
+             smPlane.push(new Sprite(x,y,34,24,10,1,'style0','sm',eImgs));
+          }
+          function handle_smBullet(){
+             smPlane.forEach(item=>{
+               if(item.blood>0){
+                 item.fire(1);
+               }
+             });
+          }
+          function handle_bg(){
+            bg1.draw();
+            bg1.y+=bg1.speed;
+            if(bg1.y>0){
+              bg1.y=-c1.height;
+            }
+          }
+          function handle_me(){
+            //me.bullets[0].draw();
+            me.bullets.forEach(item=>{
+                item.y-=item.speed;
+                item.draw();
+                if(item.y<0){
+                  me.bullets=me.bullets.filter(res=>res!=item);
+                }
+            });
+            document.title=me.bullets.length;
+            //draw me;
+            if(me.blood>0){
+              me.draw();
+            }else if(!me.blood && me.flag){
+                var image=new Image();
+                    image.src=mImgs['style0']['b_me'];
+                    me.img=image;
+                    me.draw();
+                    setTimeout(function(){
+                      me.flag=false;
+                      clearInterval(timer);
+                      document.getElementById('fail_view').style.display='block';
+                    },400);
+            }
+
+            //control me
+            document.onkeydown=function(evt){
+               switch(evt.keyCode){
+                  case 37://left;
+                    me.x-=me.speed;
+                  break;
+                  case 39://right;
+                    me.x+=me.speed;
+                  break;
+                  case 38://up;
+                  me.y-=me.speed;
+                  break;
+                  case 40://down;
+                  me.y+=me.speed;
+                  break;
+                  case 32:
+                  if(me.blood>0){
+                    me.fire(4);
+                  }
+                  break;
+               }
+            }
+          }
+     };
+    function init(){
+       c1=document.getElementById('c1');
+       btnStart=document.getElementById('btnStart');
+       btnAgain=document.getElementById('btnAgain');
+       fail_view=document.getElementById('fail_view');
+       ctx=c1.getContext('2d');
+       bg.draw();
+       btnStart.onclick=function(){
+         if(timer) clearInterval(timer);
+         timer=setInterval(drawWall,100);
+         this.style.display='none';
+       };
+       btnAgain.onclick=function(){
+         if(timer) clearInterval(timer);
+         timer=setInterval(drawWall,100);
+         me.blood=10;
+         var image=new Image();
+             image.src=mImgs['style0']['default'];
+         me.img=image;
+         fail_view.style.display='none';
+       }
+    }
+  </script>
+</head>
+<body onload='init()'>
+  <div id='container'>
+       <canvas id='c1' width='320' height='568'></canvas>
+       <div id='btnStart'>开始游戏</div>
+       <div id='fail_view'>
+            <h1>Game Over</h1>
+            <p id='btnAgain'>Start Again</p>
+       </div>
+  </div>
+  <img src='./images/我的飞机.gif'/>
+</body>
+</html>

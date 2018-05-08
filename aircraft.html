@@ -1,0 +1,178 @@
+﻿<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta http-equiv="X-UA-Compatible" content="ie=edge">
+  <title>Document</title>
+  <style type='text/css'>
+    body{background:black;}
+    #container{width:320px;margin:100px auto 0;position:relative;}
+    #c1{background:pink;}
+    #btnStart{width:100px;height:20px;border-radius:4px;border:1px solid black;text-align:center;line-height:20px;position:absolute;left:110px;bottom:100px;padding:6px;}
+  </style>
+  <script>
+     //代码kkkk
+     var c1;
+     var ctx;
+     var timer=null;
+     var timer1=null;
+     var bg_speed=5;
+
+     var m_bls=[]; //my bullets
+     var m_bl_num=4; //bullet number;
+     var m_bl_speed=80; //bullet speed;
+     var m_bl_em_speed=10;//[0,10] bullet emiting speed;
+     var m_speed=20;//myplane speed;
+     var m_flag=true;//a flag about settig speed;
+     var m_count=0;
+
+     var e_bls=[];
+     var e_sm_bl_num=1;
+     var e_sm_bl_speed=20;
+     var e_sm_bl_em_speed=1000;//millisecond;
+     var e_sm_speed=1;
+
+
+     var smPlane=[];
+     var mdPlane=[];
+     var lgPlane=[];
+     class Sprite{
+        constructor(x,y,w,h,sp,img){
+            this.x=x;
+            this.y=y;
+            this.w=w;
+            this.h=h;
+            this.sp=sp
+            var image=new Image();
+                image.src=img;
+            this.img=image;
+         }
+            draw(){
+               ctx.drawImage(this.img,this.x,this.y,this.w,this.h);
+            };
+     }
+     class MyPlane extends Sprite{
+          fire(n){
+              //生成子弹
+             for(var i=0;i<n;i++){
+               m_bls.push(new Sprite(this.x+this.w/2+i*8-n*8/2,this.y+this.h/2-Math.random()*12,6,14,m_bl_speed,'./images/bullet1.png'));
+             }
+          }
+     }
+     class EnemyPlane extends Sprite{
+          fire(n){
+            //生成子弹
+           for(var i=0;i<n;i++){
+             e_bls.push(new Sprite(this.x+this.w/2+i*8-n*8/2,this.y+this.h/2-Math.random()*12,6,14,e_sm_bl_speed,'./images/bullet1.png'));
+           }
+          }
+     }
+
+     var bg=new Sprite(0,0,320,568,0,'./images/开始背景.png');
+     var bg1=new Sprite(0,-568,320,1136,bg_speed,'./images/background_1.png');
+     var me=new MyPlane(127,480,66,80,m_speed,'./images/我的飞机.gif');
+
+     var drawWall=function(){
+          m_count++;
+        if(m_count%11<=m_bl_em_speed){
+          m_flag=true;
+        }
+        ctx.clearRect(0,0,c1.width,c1.height);
+        bg1.draw();
+        //bg1 move
+        bg1.y+=bg_speed;
+        if(bg1.y>0){
+          bg1.y=-568;
+        }
+        document.title=m_bls.length;
+        //************************************************************
+        //me control
+         document.onkeydown=function(evt){
+           switch (evt.keyCode){
+              case 37: //left
+                 me.x-=me.sp;
+              break;
+              case 39: //right
+                me.x+=me.sp;
+              break;
+              case 38: //up
+                me.y-=me.sp;
+              break;
+              case 40: //down
+                me.y+=me.sp;
+              break;
+              case 32:
+                 if(m_count%11>=(10-m_bl_em_speed) && m_flag){
+                   me.fire(m_bl_num);
+                   m_flag=false;
+                 }
+              break;
+            }
+          }
+        //me bullet draw;
+        m_bls.forEach(item=>{
+          item.draw();
+            item.y-=m_bl_speed;
+          if(item.y<0){
+            m_bls=m_bls.filter(item=>!item);
+          }
+        });
+        //me.draw;
+        me.draw();
+        //************************************************************//
+        //small plane;
+        while(smPlane.length<10){
+             var x=Math.random()*c1.width;
+             var y=-(24+Math.random()*80);
+            smPlane.push(new EnemyPlane(x,y,34,24,e_sm_speed,'./images/enemy1_fly_1.png'));
+        }
+        //draw small plane bullet
+        e_bls.forEach(item=>{
+            item.draw();
+            item.y+=e_sm_bl_speed;
+            if(item.y>c1.height){
+              e_bls=e_bls.filter(item=>!item);
+            }
+        });
+        //enemy samll plane bullet emitging speed;
+        if(!timer1){
+          timer1=setInterval(function(){
+            smPlane.forEach(item=>{
+              item.fire(e_sm_bl_num);
+            });
+          },e_sm_bl_em_speed)
+        }
+        smPlane.forEach(item=>{
+             item.draw();
+             item.y+=Math.random()*10+e_sm_speed;
+             if(item.y>c1.height){
+               smPlane=smPlane.filter(item=>!item);
+             }
+        });
+        //*************************************************************
+        //middel plane;
+
+
+     };
+    function init(){
+       c1=document.getElementById('c1');
+       btnStart=document.getElementById('btnStart');
+       ctx=c1.getContext('2d');
+       bg.draw();
+       btnStart.onclick=function(){
+         if(timer) clearInterval(timer);
+         timer=setInterval(drawWall,100);
+         this.style.display='none';
+       };
+    }
+  </script>
+</head>
+<body onload='init()'>
+  <div id='container'>
+       <canvas id='c1' width='320' height='568'></canvas>
+       <div id='btnStart'>开始游戏</div>
+  </div>
+  <img src='./images/我的飞机.gif'/>
+</body>
+</html>
